@@ -1,0 +1,21 @@
+{
+  "name": "sph-fluid-simulation",
+  "description": "A fluid simulation web experiment based on smoothed particle hydrodynamics",
+  "private": true,
+  "scripts": {
+    "build": "gulp copy-files && gulp prepare-HTML && gulp inject-HTML && gulp clean"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tommccracken/sph-fluid-simulation"
+  },
+  "author": "Thomas O. McCracken",
+  "license": "Apache 2.0",
+  "homepage": "https://tommccracken.github.io/sph-fluid-simulation/",
+  "dependencies": {},
+  "devDependencies": {
+    "gulp": "^4.0.2",
+    "gulp-markdown": "^5.0.1",
+    "gulp-replace": "^1.0.0"
+  }
+}

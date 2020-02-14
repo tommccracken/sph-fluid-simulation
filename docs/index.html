@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<!--
+
+SPH Fluid Simulation  - Demonstration/Documentation Website
+
+Source repository:
+https://github.com/tommccracken/sph-fluid-simulation
+
+
+Copyright 2020 Thomas O. McCracken
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-->
+
+<html lang="en">
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="SPH Fluid Simulation - Demonstration and Documentation Page">
+  <title>SPH Fluid Simulation - Demonstration/Documentation</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+    integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand mx-auto" href="#">SPH FLUID SIMULATION</a>
+    </div>
+  </nav>
+
+  <div id="main_box" style="background-color: #abf8fc; margin-top: -25px;">
+    <div class="container text-center">
+      <br />
+      <br /> An experiment by
+      <a href="http://tommccracken.net">Tom McCracken</a>.
+      <br />
+      <br />
+      <canvas id="SketchCanvas" width="0" height="0" style="margin: auto; display: block; touch-action: none;"></canvas>
+      <br />
+      <div id="max-width-box" class="text-center" style="margin: auto; display: block;">
+        <button id="ResumePause" type="button" class="btn btn-primary">Resume</button>
+        <button id="Step" type="button" class="btn btn-primary disabled">Step</button>
+        <button id="Reset" type="button" class="btn btn-primary">Reset</button>
+        <br />
+        <br />
+        <label>Scene selection</label>
+        <select id="scene_list" class="form-control">
+        </select>
+        <br />
+        <label>Spatial partitioning mode</label>
+        <select id="spatial_partitioning_mode" class="form-control">
+        </select>
+        <br />
+        <div class="checkbox">
+          <label><input id="debug_checkbox" type="checkbox" value="">Display debug information</label>
+        </div>
+      </div>
+      <br />
+      <p class="text-center"><a href="https://github.com/tommccracken/sph-fluid-simulation">Link</a> to GitHub repository
+        containing source, demonstration/documentation (this page) and license for use.<br /><br /></p>
+    </div>
+  </div>
+
+  <div class="container">
+    <br />
+    <h1 id="sph-fluid-simulation">SPH Fluid Simulation</h1>
+<p>A fluid simulation web experiment based on smoothed particle hydrodynamics.</p>
+<p><a href="https://tommccracken.github.io/sph-fluid-simulation/">Link </a> to demonstration.</p>
+<h2 id="introduction">Introduction</h2>
+<p>The aim of this project is to develop a fluid simulation web experiment based on smoothed particle hydrodynamics  (<a href="https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics">SPH</a>).</p>
+<p>Most fluid simulations are centered around solving the Navier–Stokes equations for the motion of viscous fluids. These simulations are generally based on one of the following methods:</p>
+<ul>
+<li>Eulerian &quot;grid&quot; based methods</li>
+<li>Lagrangian &quot;particle&quot; based methods (eg SPH)</li>
+<li>Hybrid methods (eg FLIP, MPM)</li>
+</ul>
+<p>This simulation uses SPH, a &quot;particle&quot; method, to calculate fluid densities, pressures and fluid forces (pressure force and viscosity force). The fluid particles are advected based on these forces using a position based &quot;Verlet&quot; numerical time integration scheme.</p>
+<p>The density and force calculations used in this SPH implementation are generally based on <a href="http://matthias-mueller-fischer.ch/publications/sca03.pdf">this</a> paper. Note: The surface tension force described in the paper has not been implemented at this time.</p>
+<h2 id="sph-method-overview">SPH method overview</h2>
+<p>SPH is a computational method for simulating continuum mechanics. In this simulation the fluid is discretised as a collection of particles. A physical quantity of the fluid, at a particular particle, can be determined by summing the weighted relevant properties of all neighbouring particles. The weighting is achieved using a kernel function with a range proportional to the characteristic smoothing length. The smoothing kernels implemented for this simulation have a range exactly equal to the smoothing length. This is computationally advantageous as it avoids square root operations. The following key steps are involved in the simulation:</p>
+<pre><code>Apply initial conditions
+Loop while simulating
+    For all particles
+        Find neighbours
+    For all particles
+        Calculate density using SPH
+        Approximate pressure from density
+    For all particles
+        Calculate pressure force using SPH
+        Calculate viscosity force using SPH
+        Apply gravity force
+    Collision detection and response
+    Time integration
+    Render scene</code></pre><p><em>Note: The core logic of this standalone fluid simulation project was originally developed as part of an update to the particle based physics engine <a href="https://tommccracken.net/jsRubble/">jsRubble</a>. Some additional functionality from jsRubble has also been included to enable richer demonstration scenes. This includes a constraint solver (with support for distance, point and contact constraints) and a main loop with decoupled physics and rendering updates.</em></p>
+<p>The particles are advected based on the calculated forces using the <a href="https://en.wikipedia.org/wiki/Verlet_integration#Basic_St%C3%B6rmer%E2%80%93Verlet">Verlet</a> integration scheme. This approach makes position based constraints trivial to implement.</p>
+<h2 id="neighbour-search">Neighbour search</h2>
+<p>A key part of the SPH method, and a significant contributor to simulation computational cost, involves searching for a particle&#39;s neighbours. Due to the selected kernel functions described above, the neighbour search needs to identify all particles within a circle with a radius equal to the smoothing length.</p>
+<p>One simple but naive approach to this involves checking each particle against every other particle. (time complexity of ON²). Whilst this might be adequate for simulations involving relatively small numbers of particles, a more sophisticated approach would be required as particle count increases.</p>
+<p>Spatial partitioning can improve performance by reducing the number of particle nieghbour pair checks. This simulation implements a &quot;grid&quot; based scheme where the domain is divided up into a collection of &quot;bins&quot; using a high level grid construct. The grid extends across the entire domain and is determined at the beginning of the simulation based on the selected SPH smoothing length (ie bin height/width equals smoothing length). The initial stage of performing a neighbour search involves iterating over all particles and determining what bin each particle resides within. After this process, a neighbour search for a particular particle only needs to consider particles located within the bins immediately adjacent to the particle.</p>
+<p>Another approach might involve using a spatial hash. Similar to the grid method, the spatial hash divides the domain up into &quot;bins&quot;. Rather that attaching fixed bins to a fixed grid, a spatial hash uses a hash table to store a list of particles in a dictionary where the x and y co-ordinate of the bin makes up the key to the value. This approach enables the spatial hash to grow and shrink to encompass only the portions of the domain that are occupied by particles. This data structure aligns with one of the inherent advantages of particle based methods, ie that the fluid can travel within a nearly &quot;infinite&quot; domain (limited by computer science constraints).</p>
+<p>Once the number of particles reaches a certain tipping point, the overhead computational cost of applying a spatial partitioning technique will be offset by the significantly reduced time complexity associated with checking a much smaller subset of the collection of particles.</p>
+<h2 id="rendering">Rendering</h2>
+<p>This project uses a simple approach to rendering.</p>
+<p>The contact radius of each particle (ie the radius at which a particle can contact another particle or a world boundary) is rendered as a dark blue circle.</p>
+<p>The smoothing length of each particle is represented as a blue circle with a translucency gradient that approaches full transparency at the smoothing length.</p>
+<p>Fixed non-fluid particles are rendered as red circles, dynamic non-fluid particles are rendered as green circles.</p>
+<p>A &quot;debug draw&quot; mode can also be activated which displays contact constraints, particle numbers, a representation of the spatial partitioning scheme and more definitive particle smoothing length circumferences.</p>
+
+    <br />
+    <hr>
+    <footer>
+      <p>&copy; Copyright 2020 Thomas O. McCracken</p>
+    </footer>
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"
+    integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"
+    integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+    crossorigin="anonymous"></script>
+  <script type="text/javascript" src="./sph-library.js"></script>
+  <script type="text/javascript" src="./sph-demo-scenes.js"></script>
+  <script type="text/javascript" src="./sph-demo.js"></script>
+
+</body>
+
+</html>
